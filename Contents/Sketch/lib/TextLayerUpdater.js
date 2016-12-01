@@ -19,6 +19,9 @@ var TextLayerUpdater = function(doc){
     for (var i = 0; i < doc.pages().count(); i++) {
       var page = doc.pages().objectAtIndex(i),
         layers = page.children();
+      if(page == 'Symbols'){
+        continue;
+      }
       // Loop through all children of the page
       for (var j = 0; j < layers.count(); j++) {
         var layer = layers.objectAtIndex(j);

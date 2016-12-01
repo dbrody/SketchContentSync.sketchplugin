@@ -14,6 +14,8 @@ var onRun = function(context) {
   // MasterSymbol mapping for symbol handling
   stateStore.set('symbolmap', (new MasterSymbolMapper()).generate(doc).map());
 
+  log(stateStore.get('symbolmap'));
+
   // Get public spreadsheet URL
   var previous_url = stateStore.retrieve('contentsync.google.url');
   var new_url = GoogleSyncHelpers.promptForUrl(previous_url);
@@ -56,4 +58,6 @@ var onRun = function(context) {
   doc.showMessage('Sync completed!');
 
   doc.reloadInspector();
+  doc.reloadView();
+  doc.redrawView();
 }

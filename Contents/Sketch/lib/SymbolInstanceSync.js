@@ -54,7 +54,6 @@ var SymbolInstanceSync = function(layer)
     this.masterSymbolMap = stateStore.get('symbolmap');
 
     var masterSymbol = this.masterSymbolMap[_layer.symbolID()];
-
     if(!masterSymbol){
       log("MasterSymbol not found int map. ID: " + _layer.symbolID());
       log(_layer);
@@ -62,6 +61,9 @@ var SymbolInstanceSync = function(layer)
     }
 
     var values = _layer.overrides();
+
+    var textlayerlist = this.masterSymbolRecursiveTextOverrideList(_layer.symbolID(), values);
+    log(textlayerlist);
     var mutableValues = null;
     var hasPreviousValue = false;
     if(values){
@@ -73,20 +75,65 @@ var SymbolInstanceSync = function(layer)
     }
     
     var newOverrides = {};
-    for(var i = 0; i < masterSymbol.textlayers.count(); i++){
-      var layer = masterSymbol.textlayers.objectAtIndex(i);
+    for(var i = 0; i < textlayerlist.length; i++){
+      var layer = textlayerlist[i];
       var newValue = this.parseValueForLayer(layer);
       if(newValue){
         if(hasPreviousValue){
-          mutableValues.objectForKey(0).setObject_forKey(newValue,masterSymbol.textlayers[i].objectID());
+          mutableValues.objectForKey(0).setObject_forKey(newValue,layer.objectID());
         } else {
-          mutableValues.setObject_forKey(newValue,masterSymbol.textlayers[i].objectID());
+          mutableValues.setObject_forKey(newValue,layer.objectID());
         }
       }
     }
+
     // Only overwrite if no errors
+    log("TO");
+    log(mutableValues);
     _layer.overrides = mutableValues;
   };
+
+
+  this.masterSymbolRecursiveTextOverrideList = function(masterSymbolID, overrides){
+    var masterSymbol = this.masterSymbolMap[masterSymbolID];
+    if(!masterSymbol){
+      return [];
+    }
+
+    var textlist = [];
+
+    // For each sub symbol, extract its text override list recursively
+    if(masterSymbol.symbolrefs.count() > 0){
+      for(var i = 0; i < masterSymbol.symbolrefs.count(); i++){
+        var layer = masterSymbol.symbolrefs.objectAtIndex(i);
+        var symbolrefID = layer.objectID();
+        if(overrides){
+          var overridesIndex = overrides.objectForKey(0);
+          var symbolMasterRefIDStore = overrides.objectForKey(0).objectForKey(symbolrefID);
+          if(symbolMasterRefIDStore){
+            var symbolMasterRefID = symbolMasterRefIDStore.objectForKey('symbolID');
+            var sublist = this.masterSymbolRecursiveTextOverrideList(
+              symbolMasterRefID, layer.overrides());
+            
+            // Add to list
+            for(var j = 0; j < sublist.length; j++){
+              textlist.push(sublist[j]);
+            }
+          }
+        } else {
+          // var sublist = this.masterSymbolRecursiveTextOverrideList(symbolMasterRefID);
+          // textlist = textlist.concat(sublist);
+        }
+      }
+    }
+
+    // Add own text fields to list
+    for(var j = 0; j < masterSymbol.textlayers.count(); j++){
+      textlist.push(masterSymbol.textlayers.objectAtIndex(j));
+    }
+    return textlist;
+  };
+
     
 
   this.parseValueForLayer = function(layer){
